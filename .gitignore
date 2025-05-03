@@ -5,4 +5,3 @@ Cargo.lock
 *.pdb
 .env
 node_modules
-js
