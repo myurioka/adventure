@@ -1,0 +1,8 @@
+debug/
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+.env
+node_modules
+js

@@ -1,0 +1,23 @@
+{
+  "name": "adventure",
+  "version": "1.0.0",
+  "description": "mini adventure game",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "wasm-pack build ./src/wasm --target web && vite build",
+    "build-wasm": "wasm-pack build ./src/wasm --target web --out-dir ../../js/",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "myurioka",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^6.0.7",
+    "wasm-pack": "^0.13.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "adventure"
+  }
+}

@@ -1,0 +1,41 @@
+[package]
+name = "wasm"
+description = "rust wasm mini game"
+version = "0.1.0"
+categories = ["wasm"]
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.100", features = ["serde-serialize"]}
+console_error_panic_hook = "0.1.7"
+futures = "0.3.30"
+wasm-bindgen-futures = "0.4.50"
+anyhow = "1.0.95"
+async-trait = "0.1.84"
+js-sys = "0.3.76"
+reqwest = { version = "0.12.15", features = ["blocking"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+
+[dependencies.web-sys]
+version = "0.3.77"
+features = ["console",
+            "Window",
+            "Document",
+            "HtmlCanvasElement",
+            "HtmlInputElement",
+            "CanvasRenderingContext2d",
+            "InputEvent",
+            "HtmlElement",
+            "HtmlImageElement",
+            "CssStyleDeclaration",
+            "Node",
+            "XmlHttpRequest",
+            "EventTarget",
+            "Event",
+            "MouseEvent",
+            "HtmlTextAreaElement"
+            ]

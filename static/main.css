@@ -1,0 +1,67 @@
+body{
+    margin:10,0,0,0;
+    padding:0;
+    background-color: black;
+    font-family: "MyFont";
+}
+canvas {
+    border: 2px solid green;
+    background-color: black;
+}
+canvas:focus{
+    outline: 1px solid green;
+}
+div.flexbox-container {
+    flex-direction: column;
+    display: flex;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+div#sentence input{
+    width: 520px
+}
+
+div.game {
+    margin: 0px 0px;
+    align-self: center;
+}
+
+/* Input Text for Your Answer */
+div#sentence {
+    margin: 10px 0px;
+    width: "500px";
+}
+div#sentence p{
+    display:inline-block;
+    font-size: 140%;
+    color: #d9ffb3;
+    text-align: left;
+    padding: 0.1em;
+    margin: 0 0;
+}
+
+div#sentence input[type="text"]{
+    display:inline-block;
+    font-size: 120%;
+    background-color: #d9ffb3;
+    padding: 0.5em;
+}
+
+input::placeholder {
+  font-weight: bold;
+  opacity: 0.5;
+}
+
+textarea {
+  border-radius: 0;
+  box-sizing: border-box;
+  font-size: 120%;
+  color: #d9ffb3;
+  padding: 10px;
+  line-height: 1.4em;
+  resize: none;
+  background-color: black;
+  border: None;
+}
