@@ -2,7 +2,7 @@ use crate::common::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, HtmlImageElement, CanvasRenderingContext2d, Document, HtmlInputElement, HtmlTextAreaElement, HtmlElement};
 
-/*
+/*/
 macro_rules! log {
     ( $( $t:tt )* ) => {
         web_sys::console::log_1(&format!( $( $t )* ).into())
@@ -325,7 +325,7 @@ impl StaticGame for Game{
         // display border
 
         let _context = self.get_context();
-        let _margin:f64 = 20.0;
+        let _margin:f64 = 40.0;
         let _= _context.set_global_alpha(1.0); 
         let _= _context.begin_path();
         let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
@@ -345,15 +345,19 @@ impl StaticGame for Game{
         let _message = self.get_message();
 
         let _offset_left = &self.get_canvas().offset_left();
+        let _offset_top = &self.get_canvas().offset_top();
 
         let _document = &self.get_document();
         let _textarea = _document.get_element_by_id("mytextarea").unwrap();
         let _text = _textarea.dyn_into::<HtmlElement>().unwrap();
-        let _x = format!("{}px", _offset_left + 40);
+        let _x = format!("{}px", _offset_left + ( 2.0 * _margin ) as i32);
+        let _y = format!("{}px", _offset_top + 40 + _margin as i32);
+        let _width = format!("{}px", &(BASE_WIDTH - _margin * 4.0));
         let _= _text.style().set_property("left", &_x);
-        let _= _text.style().set_property("top", "60px");
+        let _= _text.style().set_property("top", &_y);
+        let _= _text.style().set_property("width", "70%");
+        let _= _text.style().set_property("height", "50%");
         let _= _text.style().set_property("visibility", "visible");
-
         let  _textarea_message = _document.get_element_by_id("mytextarea").unwrap();
         let _html_textarea_message = _textarea_message.dyn_into::<HtmlTextAreaElement>().unwrap();
         let _= _html_textarea_message.set_value(&_message);

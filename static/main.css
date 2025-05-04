@@ -20,7 +20,7 @@ div.flexbox-container {
 }
 
 div#sentence input{
-    width: 520px
+    width: 100%
 }
 
 div.game {
@@ -31,7 +31,6 @@ div.game {
 /* Input Text for Your Answer */
 div#sentence {
     margin: 10px 0px;
-    width: "500px";
 }
 div#sentence p{
     display:inline-block;
@@ -44,7 +43,7 @@ div#sentence p{
 
 div#sentence input[type="text"]{
     display:inline-block;
-    font-size: 120%;
+    font-size: 140%;
     background-color: #d9ffb3;
     padding: 0.5em;
 }
@@ -59,9 +58,9 @@ textarea {
   box-sizing: border-box;
   font-size: 120%;
   color: #d9ffb3;
-  padding: 10px;
+  padding: 50px;
   line-height: 1.4em;
   resize: none;
-  background-color: black;
+  background-color: rgb(0 0 0 / 0.1);
   border: None;
 }
