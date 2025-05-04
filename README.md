@@ -1,8 +1,7 @@
 # adventure
 Rust WebAssembly mini adventure game
-
 =======
-adventure 🎨
+adventure 🐺
 ========
 Programming mini game for Demo in Rust & WebAssembly
 
