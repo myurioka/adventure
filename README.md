@@ -78,18 +78,16 @@ sequenceDiagram
  Here is the added content from: 
 <br />
 
-<ol>
-<li style="list-style:none;">13. set interface funtion(closure) for Input text </li>
-<li style="list-style:none;">16. set interface function(closure) for Http Respnse</li>
-<li style="list-style:none;">19. From the 'input' event, it will: On the first, store the Gemini API key.<li>
-<li style="list-style:none;">From the 'input' event, it will: On subsequest, store the text entered in INPUT_TEXT</li>
-<li style="list-style:none;">21. Wasm will request a POST to the Gemini API from the browser.</li>
-    ```<br />
+13: set interface funtion(closure) for Input text <br />
+16: set interface function(closure) for Http Respnse<br />
+19: First: From the 'input' event, it will: store the Gemini API key. Subsequest: From the 'input' event, it will: On subsequest, store the text entered in INPUT_TEXT<br />
+21: Wasm will request a POST to the Gemini API from the browser.<br />
+    ---<br />
     XmlHttpRequest.open("POST", <Gemini_api_endpoint>)<br />
     XmlHttpRequest.set_request_header(<Content-Type>)<br />
     XmlHttpRequest.send_with_opt_str(<Payload>)<br />
-    ```<br />
-<li>23. The browser will request a POST to the Gemini API.</li>
-<li>callback → 16: Closure::wrap(Box::new(|_event)|)</li>
-<li>set message from GeminiAPI to Game Object</li>
+    ---<br />
+23: The browser will request a POST to the Gemini API.<br />
+25: callback → 16: Closure::wrap(Box::new(|_event)|)<br />
+26: set message from GeminiAPI to Game Object
 </ol>
