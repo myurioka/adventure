@@ -30,6 +30,29 @@ pub fn main() -> Result<(), JsValue>{
     Ok(())
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = "webkitSpeechRecognition")]
+    pub type WebkitSpeechRecognition;
+
+    #[wasm_bindgen(constructor, js_class = "webkitSpeechRecognition")]
+    pub fn new() -> WebkitSpeechRecognition;
+
+    #[wasm_bindgen(method, js_name = "start")]
+    pub fn start(this: &WebkitSpeechRecognition);
+
+    #[wasm_bindgen(method, js_name = "stop")]
+    pub fn stop(this: &WebkitSpeechRecognition);
+
+    #[wasm_bindgen(method, js_name = "addEventListener")]
+    pub fn add_event_listener(
+        this: &WebkitSpeechRecognition,
+        event: &str,
+        callback: &Closure<dyn FnMut(JsValue)>,
+    );
+}
+
+
 struct GameLoop;
 impl GameLoop {
 
@@ -250,6 +273,24 @@ impl GameLoop {
                 ref_game_image_cloned.borrow_mut().on_image(_image);
                 ref_game.borrow().draw();
             });
+        }
+
+        {
+            let recognition = WebkitSpeechRecognition::new();
+
+            let on_result = Closure::wrap(Box::new(move |event: JsValue| {
+                let transcript = js_sys::Reflect::get(&event, &JsValue::from_str("results"))
+                    .unwrap()
+                    .as_string()
+                    .unwrap_or_default();
+                web_sys::console::log_1(&JsValue::from_str(&format!("Recognized: {}", transcript)));
+            }) as Box<dyn FnMut(JsValue)>);
+
+            recognition.add_event_listener("result", &on_result);
+            on_result.forget();
+
+            recognition.start();
+
         }
     }
 }
