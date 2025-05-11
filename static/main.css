@@ -3,6 +3,7 @@ body{
     padding:0;
     background-color: black;
     font-family: "MyFont";
+    max-width: 980px;
 }
 canvas {
     border: 2px solid green;
@@ -56,7 +57,7 @@ input::placeholder {
 textarea {
   border-radius: 0;
   box-sizing: border-box;
-  font-size: 120%;
+  font-size: 160%;
   color: #d9ffb3;
   padding: 50px;
   line-height: 1.4em;

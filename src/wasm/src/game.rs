@@ -361,7 +361,8 @@ impl StaticGame for Game{
         let _width = format!("{}px", &(BASE_WIDTH - _margin * 4.0));
         let _= _text.style().set_property("left", &_x);
         let _= _text.style().set_property("top", &_y);
-        let _= _text.style().set_property("width", "70%");
+        let _= _text.style().set_property("width", "65%");
+        let _= _text.style().set_property("max-width", "860px");
         let _= _text.style().set_property("height", "50%");
         let _= _text.style().set_property("visibility", "visible");
         let  _textarea_message = _document.get_element_by_id("mytextarea").unwrap();
