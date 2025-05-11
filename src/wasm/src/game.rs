@@ -177,11 +177,11 @@ impl StaticGame for Game{
                 let _= _context.set_fill_style_str(DEFAULT_COLOR);
                 let _= _context.set_font("36px MyFont");
                 let _= _context.set_text_align("center");
-                let _= _context.fill_text(TITLE, 270.0, 120.0);
+                let _= _context.fill_text(TITLE, 270.0, 90.0);
                 let _= _context.set_font("18px MyFont");
                 let _lines: Vec<&str> = TEXT_OPEN.split('\n').collect();
                 for i in 0.._lines.len(){
-                    let _= _context.fill_text(_lines[i], 270.0, (160.0 + (TEXT_SPACE * i) as f32).into());
+                    let _= _context.fill_text(_lines[i], 270.0, (120.0 + (TEXT_SPACE * i) as f32).into());
                 }
                 let _= _context.set_stroke_style_str("rgba(-1,128, 0)");
                 let _= _context.begin_path();
@@ -199,6 +199,12 @@ impl StaticGame for Game{
                 let input_element = _input.dyn_into::<HtmlInputElement>().unwrap();
                 let _= input_element.style().set_property("background-color", "#D9FFB3");
                 let _= input_element.set_placeholder(TEXT_CHAPTER_TEXT_PLACEHOLDER[0]);
+
+                // Mike!!
+
+
+                let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    &self.image, 0.0, 900.0,120.0,150.0,220.0,210.0,240.0,300.0);
 
             },
             1 .. 20 => {
