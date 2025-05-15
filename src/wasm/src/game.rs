@@ -1,6 +1,6 @@
 use crate::common::*;
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlCanvasElement, HtmlImageElement, CanvasRenderingContext2d, Document, HtmlInputElement, HtmlTextAreaElement, HtmlElement};
+use web_sys::{HtmlCanvasElement, HtmlImageElement, CanvasRenderingContext2d, Document, HtmlInputElement, HtmlTextAreaElement, HtmlElement, MouseEvent};
 
 /*/
 macro_rules! log {
@@ -19,6 +19,7 @@ pub struct Game{
     page: usize,
     message: String,
     api_endpoint: String,
+    mike: bool,
 }
 
 pub trait StaticGame {
@@ -26,17 +27,19 @@ pub trait StaticGame {
     fn set_image(&mut self, image:HtmlImageElement);
     fn set_message(&mut self, text:String);
     fn set_api_endpoint(&mut self, _api_endpoint:String);
+    fn set_mike_status(&mut self);
     fn next_page(&mut self);
     fn on_animation_frame(&mut self);
     fn on_image(&mut self, _image: HtmlImageElement);
     fn on_http_request(&mut self, response: String);
-    fn on_click(&mut self); 
+    fn on_click(&mut self, e:MouseEvent); 
     fn get_document(&self) -> Document;
     fn get_canvas(&self) -> HtmlCanvasElement;
     fn get_context(&self) -> CanvasRenderingContext2d;
     fn get_message(&self) -> String;
     fn get_page(&self) -> usize;
     fn get_api_endpoint(&self) -> String;
+    fn get_mike_status(&self) -> bool;
     fn update(&mut self);
     fn draw(&self);
     fn show_message(&self);
@@ -62,6 +65,7 @@ impl StaticGame for Game{
             page: 0,
             message: String::from(""),
             api_endpoint: String::from(""),
+            mike: false,
         }
     }
 
@@ -84,6 +88,9 @@ impl StaticGame for Game{
     fn get_page(&self) -> usize {
         self.page.clone()
     }
+    fn get_mike_status(&self) -> bool {
+        self.mike.clone()
+    }
     fn set_image(&mut self, image:HtmlImageElement){
         self.image = image;
     }
@@ -92,6 +99,10 @@ impl StaticGame for Game{
     }
     fn set_api_endpoint(&mut self, api_endpoint:String){
         self.api_endpoint = api_endpoint;
+    }
+    fn set_mike_status(&mut self){
+        if self.mike { self.mike = false;}
+        else {self.mike = true;}
     }
     fn next_page(&mut self) {
         if self.page == LAST_PAGE {
@@ -110,9 +121,28 @@ impl StaticGame for Game{
 
     // callback click: controll page number
 
-    fn on_click(&mut self) {
+    fn on_click(&mut self, e:MouseEvent) {
+
         let _page = self.get_page();
-        if _page == 0 { return; }; // click nothing happens
+        let _x = e.client_x();
+        let _y = e.client_y();
+        let _width:i32 = (self.screen_width / 3) as i32;
+        let _height:i32 = (self.screen_height / 3) as i32;
+        let _offset_left = &self.get_canvas().offset_left();
+        let _offset_top = &self.get_canvas().offset_top();
+
+        if _page == 0 {
+
+            // Click Mike!?
+
+            let _click_x = _x - _offset_left;
+            let _click_y = _y - _offset_top;
+
+            if _click_x > _width && _click_x < 2 * _width && _click_y > _height && _click_y < 2 * _height {
+                self.set_mike_status();
+            }
+            return;
+        };
 
         if _page % 2 == 0 || _page == LAST_PAGE {
             let _document = &self.get_document();
@@ -202,9 +232,13 @@ impl StaticGame for Game{
 
                 // Mike!!
 
-
-                let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    &self.image, 0.0, 900.0,120.0,150.0,220.0,210.0,240.0,300.0);
+                if self.get_mike_status() {
+                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                        &self.image, 60.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
+                } else {
+                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                        &self.image, 0.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
+                }
 
             },
             1 .. 20 => {
