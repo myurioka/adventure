@@ -17,8 +17,8 @@ export interface InitOutput {
   readonly __externref_table_dealloc: (a: number) => void;
   readonly _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hfb4986a75ed8057f: (a: number, b: number) => void;
   readonly _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h8fc513b8813323eb: (a: number, b: number, c: number) => void;
-  readonly closure67_externref_shim: (a: number, b: number, c: any) => void;
-  readonly closure82_externref_shim: (a: number, b: number, c: any) => void;
+  readonly closure68_externref_shim: (a: number, b: number, c: any) => void;
+  readonly closure83_externref_shim: (a: number, b: number, c: any) => void;
   readonly __wbindgen_start: () => void;
 }
 

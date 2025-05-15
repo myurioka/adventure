@@ -69,6 +69,120 @@ impl GameLoop {
 
         let ref_game = Rc::new(RefCell::new(game));
 
+        // callback WebkitSpeechRecognition from JS
+
+        let game_ref_for_speech = Rc::clone(&ref_game);
+        let recognition = WebkitSpeechRecognition::new();
+        let ref_recognition = Rc::new(RefCell::new(recognition));
+        let ref_recognition_cloned = Rc::clone(&ref_recognition);
+
+        ref_recognition.borrow_mut().set_lang("ja-JP");         // en-US
+        ref_recognition.borrow_mut().set_interim_results(true); // 途中結果も取得する
+        ref_recognition.borrow_mut().set_continuous(false); // 発話が一度途切れたら認識を終了 (true:continue)
+
+        // speach recognition onresult
+        let on_result = Closure::wrap(Box::new(move |event: JsValue| {
+            log!("Speech recognition 'result' event kick.");
+
+            let results = match js_sys::Reflect::get(&event, &JsValue::from_str("results")) {
+                Ok(r) => r,
+                Err(_) => {
+                    log!("Failed to get 'results' from SpeechRecognitionEvent");
+                    return;
+                }
+            };
+
+            // `results` は SpeechRecognitionResultList
+            let result_list_length = match js_sys::Reflect::get(&results, &JsValue::from_str("length")).ok().and_then(|l| l.as_f64()) {
+                Some(len) => len as u32,
+                None => {
+                    log!("Failed to get 'length' from SpeechRecognitionResultList or it's not a number");
+                    return;
+                }
+            };
+
+            // interimResults が true の場合、複数の結果が含まれることがある
+            // 通常、最後の結果が最新のもの
+            if result_list_length > 0 {
+                let last_result_item_index = result_list_length -1;
+                let result_item = match js_sys::Reflect::get_u32(&results, last_result_item_index) {
+                    Ok(item) => item,
+                    Err(_) => {
+                        log!("Failed to get result item at index {}", last_result_item_index);
+                        return;
+                        }
+                };
+                // `result_item` は SpeechRecognitionResult
+
+                // 最初の候補 (SpeechRecognitionAlternative) を取得 (通常これが最も確からしい)
+                let alternative = match js_sys::Reflect::get_u32(&result_item, 0) {
+                    Ok(alt) => alt,
+                    Err(_) => {
+                        log!("Failed to get alternative from result item at index {}", last_result_item_index);
+                        return;
+                    }
+                };
+
+                let transcript = js_sys::Reflect::get(&alternative, &JsValue::from_str("transcript"))
+                    .ok().and_then(|v| v.as_string()).unwrap_or_default();
+                let confidence = js_sys::Reflect::get(&alternative, &JsValue::from_str("confidence"))
+                    .ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
+                   
+                // isFinal は、この結果が最終的なものか (true)、それとも中間結果か (false) を示す
+                let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
+                    .ok().and_then(|v| v.as_bool()).unwrap_or(false);
+
+                log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
+
+                // 確定した結果 (isFinal: true) で、かつマイクがオンの場合に入力フィールドに反映する例
+                if is_final {
+                    let game_borrow = game_ref_for_speech.borrow(); // game_ref_for_speech を使用
+                    if game_borrow.get_mike_status() { // マイクがオンの時だけ処理
+                        let document = window().unwrap().document().unwrap();
+                        if let Some(input_el_val) = document.get_element_by_id("input") {
+                            if let Ok(input_el) = input_el_val.dyn_into::<HtmlInputElement>() {
+                                input_el.set_value(&transcript);
+                                // TODO: 必要であれば、ここで "change" イベントを能動的に発火させるか、
+                                // game_ref_for_speech.borrow_mut().on_input_changed(transcript); のようなメソッドを呼び出す
+                            }
+                        }
+                    }
+                }
+            }
+        }) as Box<dyn FnMut(JsValue)>);
+
+        ref_recognition.borrow_mut().add_event_listener("result", &on_result);
+        on_result.forget();
+
+        // speech recognition onerror
+        let on_error = Closure::wrap(Box::new(move |error_event: JsValue| {
+            // `error_event` は JavaScript の SpeechRecognitionErrorEvent オブジェクト
+            let error_type = js_sys::Reflect::get(&error_event, &JsValue::from_str("error"))
+                .unwrap_or_else(|_| JsValue::from_str("unknown error"))
+                .as_string()
+                .unwrap_or_else(|| "unknown error".to_string());
+            log!("Speech recognition error: {}", error_type);
+        }) as Box<dyn FnMut(JsValue)>);
+
+        ref_recognition.borrow_mut().add_event_listener("error", &on_error);
+        on_error.forget();
+
+        // speech recognition onstart
+        let on_start = Closure::wrap(Box::new(move |_: JsValue| {
+            log!("Speech recognition service has started.");
+        }) as Box<dyn FnMut(JsValue)>);
+        ref_recognition.borrow_mut().add_event_listener("start", &on_start);
+        on_start.forget();
+
+        // speech recognition onend
+        let ref_game_mike_cloned = Rc::clone(&ref_game);
+        let on_end = Closure::wrap(Box::new(move |_: JsValue| {
+            ref_recognition.borrow_mut().stop();
+            ref_game_mike_cloned.borrow_mut().set_mike_off();
+        }) as Box<dyn FnMut(JsValue)>);
+        ref_recognition_cloned.borrow_mut().add_event_listener("end", &on_end);
+        on_end.forget();
+
         // callback frame from JS
 
         {
@@ -238,7 +352,10 @@ impl GameLoop {
 
         {
             let ref_game_touch_cloned = Rc::clone(&ref_game);
+
             let c = Closure::wrap(Box::new(move |e:MouseEvent| {
+                log!("PASS TOUCH to REcognition");
+                ref_recognition_cloned.borrow().start();
                 ref_game_touch_cloned.borrow_mut().on_click(e);
             }) as Box<dyn FnMut(_)>);
             let _document = window().unwrap().document().unwrap();
@@ -262,125 +379,6 @@ impl GameLoop {
             d.forget();
         }
 
-        // callback WebkitSpeechRecognition from JS
-
-        {
-            let game_ref_for_speech = Rc::clone(&ref_game);
-            let recognition = WebkitSpeechRecognition::new();
-            recognition.set_lang("ja-JP");      // en-US
-            recognition.set_interim_results(true); // 途中結果も取得する
-            recognition.set_continuous(false);     // 発話が一度途切れたら認識を終了 (true にすると継続的に認識)
-
-            // onresult イベントハンドラ: 音声認識結果が得られたとき
-            let on_result = Closure::wrap(Box::new(move |event: JsValue| {
-                // `event` は JavaScript の SpeechRecognitionEvent オブジェクト
-                log!("Speech recognition 'result' event fired.");
-
-                let results = match js_sys::Reflect::get(&event, &JsValue::from_str("results")) {
-                    Ok(r) => r,
-                    Err(_) => {
-                        log!("Failed to get 'results' from SpeechRecognitionEvent");
-                        return;
-                    }
-                };
-
-                // `results` は SpeechRecognitionResultList
-                let result_list_length = match js_sys::Reflect::get(&results, &JsValue::from_str("length")).ok().and_then(|l| l.as_f64()) {
-                    Some(len) => len as u32,
-                    None => {
-                        log!("Failed to get 'length' from SpeechRecognitionResultList or it's not a number");
-                        return;
-                    }
-                };
-
-                // interimResults が true の場合、複数の結果が含まれることがある
-                // 通常、最後の結果が最新のもの
-                if result_list_length > 0 {
-                    let last_result_item_index = result_list_length -1;
-                    let result_item = match js_sys::Reflect::get_u32(&results, last_result_item_index) {
-                         Ok(item) => item,
-                         Err(_) => {
-                             log!("Failed to get result item at index {}", last_result_item_index);
-                             return;
-                         }
-                    };
-                    // `result_item` は SpeechRecognitionResult
-
-                    // 最初の候補 (SpeechRecognitionAlternative) を取得 (通常これが最も確からしい)
-                    let alternative = match js_sys::Reflect::get_u32(&result_item, 0) {
-                        Ok(alt) => alt,
-                        Err(_) => {
-                            log!("Failed to get alternative from result item at index {}", last_result_item_index);
-                            return;
-                        }
-                    };
-
-                    let transcript = js_sys::Reflect::get(&alternative, &JsValue::from_str("transcript"))
-                        .ok().and_then(|v| v.as_string()).unwrap_or_default();
-                    let confidence = js_sys::Reflect::get(&alternative, &JsValue::from_str("confidence"))
-                        .ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
-                    
-                    // isFinal は、この結果が最終的なものか (true)、それとも中間結果か (false) を示す
-                    let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
-                        .ok().and_then(|v| v.as_bool()).unwrap_or(false);
-
-                    log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
-
-                    // 確定した結果 (isFinal: true) で、かつマイクがオンの場合に入力フィールドに反映する例
-                    if is_final {
-                        let game_borrow = game_ref_for_speech.borrow(); // game_ref_for_speech を使用
-                        if game_borrow.get_mike_status() { // マイクがオンの時だけ処理
-                            let document = window().unwrap().document().unwrap();
-                            if let Some(input_el_val) = document.get_element_by_id("input") {
-                                if let Ok(input_el) = input_el_val.dyn_into::<HtmlInputElement>() {
-                                    input_el.set_value(&transcript);
-                                    // TODO: 必要であれば、ここで "change" イベントを能動的に発火させるか、
-                                    // game_ref_for_speech.borrow_mut().on_input_changed(transcript); のようなメソッドを呼び出す
-                                }
-                            }
-                        }
-                    }
-                }
-            }) as Box<dyn FnMut(JsValue)>);
-
-            recognition.add_event_listener("result", &on_result);
-            on_result.forget();
-
-            // onerror イベントハンドラ: エラーが発生したとき
-            let on_error = Closure::wrap(Box::new(move |error_event: JsValue| {
-                // `error_event` は JavaScript の SpeechRecognitionErrorEvent オブジェクト
-                let error_type = js_sys::Reflect::get(&error_event, &JsValue::from_str("error"))
-                    .unwrap_or_else(|_| JsValue::from_str("unknown error"))
-                    .as_string()
-                    .unwrap_or_else(|| "unknown error".to_string());
-                log!("Speech recognition error: {}", error_type);
-            }) as Box<dyn FnMut(JsValue)>);
-
-            recognition.add_event_listener("error", &on_error);
-            on_error.forget();
-
-            // onstart イベントハンドラ: 認識が開始されたとき (オプション)
-            let on_start = Closure::wrap(Box::new(move |_: JsValue| {
-                log!("Speech recognition service has started.");
-            }) as Box<dyn FnMut(JsValue)>);
-            recognition.add_event_listener("start", &on_start);
-            on_start.forget();
-
-            // onend イベントハンドラ: 認識が終了したとき (オプション)
-            let on_end = Closure::wrap(Box::new(move |_: JsValue| {
-                log!("Speech recognition service has disconnected.");
-                // continuous = false の場合、ここで再度 start() を呼ぶか、
-                // UI でユーザーに再開を促すなどの処理が必要になることがあります。
-            }) as Box<dyn FnMut(JsValue)>);
-            recognition.add_event_listener("end", &on_end);
-            on_end.forget();
-
-            // recognition start
-            // 実際のアプリケーションでは、マイクボタンのクリックイベントなどで
-            // recognition.start() や recognition.stop() を呼び出すように制御します。
-            // このサンプルでは、GameLoop::start の最後に一度だけ呼び出します。
-            recognition.start();
-        }
 
         // callback image load from JS
 

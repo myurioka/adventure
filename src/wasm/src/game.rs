@@ -27,7 +27,8 @@ pub trait StaticGame {
     fn set_image(&mut self, image:HtmlImageElement);
     fn set_message(&mut self, text:String);
     fn set_api_endpoint(&mut self, _api_endpoint:String);
-    fn set_mike_status(&mut self);
+    fn set_mike_on(&mut self);
+    fn set_mike_off(&mut self);
     fn next_page(&mut self);
     fn on_animation_frame(&mut self);
     fn on_image(&mut self, _image: HtmlImageElement);
@@ -100,9 +101,11 @@ impl StaticGame for Game{
     fn set_api_endpoint(&mut self, api_endpoint:String){
         self.api_endpoint = api_endpoint;
     }
-    fn set_mike_status(&mut self){
-        if self.mike { self.mike = false;}
-        else {self.mike = true;}
+    fn set_mike_on(&mut self){
+        self.mike = true;
+    }
+    fn set_mike_off(&mut self){
+        self.mike = false;
     }
     fn next_page(&mut self) {
         if self.page == LAST_PAGE {
@@ -131,7 +134,7 @@ impl StaticGame for Game{
         let _offset_left = &self.get_canvas().offset_left();
         let _offset_top = &self.get_canvas().offset_top();
 
-        if _page == 0 {
+        if _page % 2 == 1 {
 
             // Click Mike!?
 
@@ -139,7 +142,11 @@ impl StaticGame for Game{
             let _click_y = _y - _offset_top;
 
             if _click_x > _width && _click_x < 2 * _width && _click_y > _height && _click_y < 2 * _height {
-                self.set_mike_status();
+                if self.get_mike_status() {
+                    let _= self.set_mike_off();
+                } else {
+                    let _= self.set_mike_on();
+                }
             }
             return;
         };
@@ -150,6 +157,7 @@ impl StaticGame for Game{
             let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
             let _= _text.set_value("");
             let _= self.set_message(String::from(""));
+            let _= self.set_mike_off();
             self.next_page();
         }
     }
@@ -211,7 +219,7 @@ impl StaticGame for Game{
                 let _= _context.set_font("18px MyFont");
                 let _lines: Vec<&str> = TEXT_OPEN.split('\n').collect();
                 for i in 0.._lines.len(){
-                    let _= _context.fill_text(_lines[i], 270.0, (120.0 + (TEXT_SPACE * i) as f32).into());
+                    let _= _context.fill_text(_lines[i], 270.0, (130.0 + (TEXT_SPACE * i) as f32).into());
                 }
                 let _= _context.set_stroke_style_str("rgba(-1,128, 0)");
                 let _= _context.begin_path();
@@ -230,15 +238,8 @@ impl StaticGame for Game{
                 let _= input_element.style().set_property("background-color", "#D9FFB3");
                 let _= input_element.set_placeholder(TEXT_CHAPTER_TEXT_PLACEHOLDER[0]);
 
-                // Mike!!
-
-                if self.get_mike_status() {
-                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                        &self.image, 60.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
-                } else {
-                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                        &self.image, 0.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
-                }
+                let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                    &self.image, 120.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
 
             },
             1 .. 20 => {
@@ -306,6 +307,21 @@ impl StaticGame for Game{
                 for i in 0.._lines.len() {
                     let _=  _context.fill_text(_lines[i], 10.0, (70.0 + (TEXT_SPACE * i) as f32).into());
                 }
+
+                // Mike!!
+
+                if self.get_mike_status() {
+                    _context.set_global_alpha(0.3);
+                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                        &self.image, 60.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
+                } else {
+                    _context.set_global_alpha(0.3);
+                    let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
+                        &self.image, 0.0, 900.0,60.0,150.0,220.0,210.0,120.0,300.0);
+                }
+
+                _context.set_global_alpha(1.0);
+
                 let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                             &self.image, _f.0, _f.1, _f.2, _f.3, _d.0, _d.1, _d.2, _d.3);
                 
