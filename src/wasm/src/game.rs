@@ -2,13 +2,11 @@ use crate::common::*;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, HtmlImageElement, CanvasRenderingContext2d, Document, HtmlInputElement, HtmlTextAreaElement, HtmlElement, MouseEvent};
 
-/*/
 macro_rules! log {
     ( $( $t:tt )* ) => {
         web_sys::console::log_1(&format!( $( $t )* ).into())
     }
 }
-*/
 
 #[derive(Debug, Clone)]
 pub struct Game{
@@ -29,11 +27,13 @@ pub trait StaticGame {
     fn set_api_endpoint(&mut self, _api_endpoint:String);
     fn set_mike_on(&mut self);
     fn set_mike_off(&mut self);
+    fn set_mike_changed(&mut self);
     fn next_page(&mut self);
     fn on_animation_frame(&mut self);
     fn on_image(&mut self, _image: HtmlImageElement);
     fn on_http_request(&mut self, response: String);
     fn on_click(&mut self, e:MouseEvent); 
+    fn on_input_changed(&mut self, transcript: &String);
     fn get_document(&self) -> Document;
     fn get_canvas(&self) -> HtmlCanvasElement;
     fn get_context(&self) -> CanvasRenderingContext2d;
@@ -107,6 +107,13 @@ impl StaticGame for Game{
     fn set_mike_off(&mut self){
         self.mike = false;
     }
+    fn set_mike_changed(&mut self){
+        if self.mike {
+            self.mike = false;
+        } else {
+            self.mike = true;
+        }
+    }
     fn next_page(&mut self) {
         if self.page == LAST_PAGE {
             self.set_api_endpoint(String::from(""));
@@ -116,50 +123,16 @@ impl StaticGame for Game{
         self.page +=  1;
     }
 
-    // callback animation
+    // Speech recognition result
 
-    fn on_animation_frame(&mut self) {
-        self.update();
-    }
-
-    // callback click: controll page number
-
-    fn on_click(&mut self, e:MouseEvent) {
-
-        let _page = self.get_page();
-        let _x = e.client_x();
-        let _y = e.client_y();
-        let _width:i32 = (self.screen_width / 3) as i32;
-        let _height:i32 = (self.screen_height / 3) as i32;
-        let _offset_left = &self.get_canvas().offset_left();
-        let _offset_top = &self.get_canvas().offset_top();
-
-        if _page % 2 == 1 {
-
-            // Click Mike!?
-
-            let _click_x = _x - _offset_left;
-            let _click_y = _y - _offset_top;
-
-            if _click_x > _width && _click_x < 2 * _width && _click_y > _height && _click_y < 2 * _height {
-                if self.get_mike_status() {
-                    let _= self.set_mike_off();
-                } else {
-                    let _= self.set_mike_on();
-                }
-            }
-            return;
-        };
-
-        if _page % 2 == 0 || _page == LAST_PAGE {
-            let _document = &self.get_document();
-            let _input = _document.get_element_by_id("input").unwrap();
-            let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
-            let _= _text.set_value("");
-            let _= self.set_message(String::from(""));
-            let _= self.set_mike_off();
-            self.next_page();
-        }
+    fn on_input_changed(&mut self, transcript: &String){
+        log!("Speech recognition service text:{}", transcript);
+        let _document = &self.get_document();
+        let _input = _document.get_element_by_id("input").unwrap();
+        let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
+        let _= _text.set_value("Hello");
+        //let _= _text.set_value(&transcript);
+        //let _= self.set_mike_off();
     }
 
     // Gemini Prompt
@@ -194,6 +167,51 @@ impl StaticGame for Game{
     fn update(&mut self){
         self.clear();
         self.draw();
+    }
+
+    // callback animation
+
+    fn on_animation_frame(&mut self) {
+        self.update();
+    }
+
+    // callback click: controll page number
+
+    fn on_click(&mut self, e:MouseEvent) {
+
+        let _page = self.get_page();
+        let _x = e.client_x();
+        let _y = e.client_y();
+        let _width:i32 = (self.screen_width / 3) as i32;
+        let _height:i32 = (self.screen_height / 3) as i32;
+        let _offset_left = &self.get_canvas().offset_left();
+        let _offset_top = &self.get_canvas().offset_top();
+
+        if _page % 2 == 1 {
+
+            // Click Mike!?
+
+            let _click_x = _x - _offset_left;
+            let _click_y = _y - _offset_top;
+
+            if self.get_mike_status() {
+                let _= self.set_mike_off();
+            } else {
+                let _= self.set_mike_on();
+            }
+
+            return;
+        };
+
+        if _page % 2 == 0 || _page == LAST_PAGE {
+            let _document = &self.get_document();
+            let _input = _document.get_element_by_id("input").unwrap();
+            let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
+            let _= _text.set_value("");
+            let _= self.set_message(String::from(""));
+            let _= self.set_mike_off();
+            self.next_page();
+        }
     }
 
     // draw

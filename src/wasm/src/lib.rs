@@ -132,7 +132,7 @@ impl GameLoop {
                 let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
                     .ok().and_then(|v| v.as_bool()).unwrap_or(false);
 
-                log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
+                //log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
 
                 // 確定した結果 (isFinal: true) で、かつマイクがオンの場合に入力フィールドに反映する例
                 if is_final {
@@ -142,8 +142,7 @@ impl GameLoop {
                         if let Some(input_el_val) = document.get_element_by_id("input") {
                             if let Ok(input_el) = input_el_val.dyn_into::<HtmlInputElement>() {
                                 input_el.set_value(&transcript);
-                                // TODO: 必要であれば、ここで "change" イベントを能動的に発火させるか、
-                                // game_ref_for_speech.borrow_mut().on_input_changed(transcript); のようなメソッドを呼び出す
+                                //game_ref_for_speech.borrow_mut().on_input_changed(&transcript);
                             }
                         }
                     }
@@ -168,6 +167,7 @@ impl GameLoop {
         on_error.forget();
 
         // speech recognition onstart
+
         let on_start = Closure::wrap(Box::new(move |_: JsValue| {
             log!("Speech recognition service has started.");
         }) as Box<dyn FnMut(JsValue)>);
@@ -175,10 +175,12 @@ impl GameLoop {
         on_start.forget();
 
         // speech recognition onend
+
         let ref_game_mike_cloned = Rc::clone(&ref_game);
         let on_end = Closure::wrap(Box::new(move |_: JsValue| {
-            ref_recognition.borrow_mut().stop();
+            log!("Speech recognition service has stopped.");
             ref_game_mike_cloned.borrow_mut().set_mike_off();
+            ref_recognition.borrow_mut().stop();
         }) as Box<dyn FnMut(JsValue)>);
         ref_recognition_cloned.borrow_mut().add_event_listener("end", &on_end);
         on_end.forget();
@@ -280,8 +282,8 @@ impl GameLoop {
         // callback Input Event from JS
 
         {
-
             let closure_input = Closure::wrap(Box::new(move |e: InputEvent| {
+                log!("callback Input Event");
                 let input = e
                     .current_target()
                     .unwrap()
@@ -354,10 +356,13 @@ impl GameLoop {
             let ref_game_touch_cloned = Rc::clone(&ref_game);
 
             let c = Closure::wrap(Box::new(move |e:MouseEvent| {
-                log!("PASS TOUCH to REcognition");
+
+                // Start Recognition
+
                 ref_recognition_cloned.borrow().start();
-                ref_game_touch_cloned.borrow_mut().on_click(e);
+                ref_game_touch_cloned.borrow_mut().set_mike_changed();
             }) as Box<dyn FnMut(_)>);
+
             let _document = window().unwrap().document().unwrap();
             let _canvas = _document.get_element_by_id("canvas").unwrap();
             _canvas.add_event_listener_with_callback(
