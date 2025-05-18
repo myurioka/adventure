@@ -16,6 +16,10 @@ LITTLE RED RIDING HOOD\n
 Jacob Ludwig Grimm and Wilhelm Carl Grimm\n
 ";
 
+pub const TEXT_FIN: &'static str = " 
+FIN.\n
+";
+
 pub const TEXT_CHAPTER:[&str;9] = [
 "",
 "Once upon a time, there was a lovely little girl who was\n

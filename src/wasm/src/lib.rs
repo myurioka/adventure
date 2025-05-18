@@ -1,17 +1,12 @@
 mod game;
 mod common;
 use crate::common::*;
-use anyhow::{anyhow, Result};
-
+use anyhow::Result;
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
-use web_sys::{HtmlImageElement, window, InputEvent, XmlHttpRequest, Event, EventTarget, HtmlInputElement, MouseEvent, KeyboardEvent};
-use std::{cell::RefCell, rc::Rc, collections::HashMap};
-use futures::channel::{
-    mpsc::{unbounded, UnboundedReceiver},
-    //oneshot::channel,
-};
+use web_sys::{HtmlImageElement, window, XmlHttpRequest, Event, EventTarget, HtmlInputElement, MouseEvent, KeyboardEvent};
+use std::{cell::RefCell, rc::Rc};
 use game::Game;
 use game::StaticGame;
 
@@ -75,8 +70,6 @@ impl GameLoop {
 
         let ref_game = Rc::new(RefCell::new(game));
 
-        //let ref_game_cloned_keydown = Rc::clone(&ref_game);
-
         // callback WebkitSpeechRecognition from JS
 
         let ref_game_cloned_speech = Rc::clone(&ref_game);
@@ -84,8 +77,8 @@ impl GameLoop {
         let ref_recognition = Rc::new(RefCell::new(recognition));
         let ref_recognition_cloned = Rc::clone(&ref_recognition);
 
-        ref_recognition.borrow_mut().set_lang("js-JP"); // en-US, ja-JP
-        ref_recognition.borrow_mut().set_interim_results(false); // true: Get intermediate results
+        ref_recognition.borrow_mut().set_lang("en-US"); // en-US, ja-JP
+        ref_recognition.borrow_mut().set_interim_results(true); // true: Get intermediate results
         ref_recognition.borrow_mut().set_continuous(false); // true: Continue if speeach is interrupted
 
         // speach recognition onresult
@@ -130,14 +123,13 @@ impl GameLoop {
 
                 let transcript = js_sys::Reflect::get(&alternative, &JsValue::from_str("transcript"))
                     .ok().and_then(|v| v.as_string()).unwrap_or_default();
-                log!("Lib: transcript::{}", transcript);
                 let confidence = js_sys::Reflect::get(&alternative, &JsValue::from_str("confidence"))
                     .ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
                    
                 let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
                     .ok().and_then(|v| v.as_bool()).unwrap_or(false); // true: fainal result
 
-                log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
+                //log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
 
                 if is_final {
                     // change input_text context
@@ -207,7 +199,6 @@ impl GameLoop {
 
         // callback http request from JS
 
-        //let ref_game_cloned = Rc::clone(&ref_game);
         let _xhr = XmlHttpRequest::new().unwrap();
         let _xhr_cloned = Rc::new(RefCell::new(_xhr.clone()));
 
@@ -274,87 +265,18 @@ impl GameLoop {
             closure_http_request.forget();
         }
 
-        // callback Input Event from JS
-        /* 
-        {
-            let closure_input = Closure::wrap(Box::new(move |e: InputEvent| {
-                let input = e
-                    .current_target()
-                    .unwrap()
-                    .dyn_into::<web_sys::HtmlInputElement>()
-                    .unwrap();
-
-                let _input_text = sanitize(input.value());
-
-                let _api_endpoint = format!("{}",ref_game_cloned.borrow().get_api_endpoint());
-
-                if _api_endpoint == "" {
-                    let api_endpoint = format!("{}{}", GEMINI_API_ENDPOINT.to_string(), _input_text);
-                    let _= ref_game_cloned.borrow_mut().set_api_endpoint(api_endpoint);
-                    let _= ref_game_cloned.borrow_mut().next_page();
-                    let _text = input.dyn_into::<HtmlInputElement>().unwrap();
-                    _text.set_value("");
-                    return;
-                }
-
-                let api_endpoint = format!("{}",ref_game_cloned.borrow().get_api_endpoint());
-                           
-                let _text = ref_game_cloned.borrow().create_prompt(_input_text);
-                let _= ref_game_cloned.borrow_mut().next_page();
-                let request_body = GeminiRequestBody {
-                    contents: vec![GeminiRequestContent {
-                    parts: vec![GeminiRequestPart {text: _text}],
-                    }],
-                };
-
-                let payload = match serde_json::to_string(&request_body){
-                    Ok(json) => json,
-                    Err(e) => {
-                    log!("Failed to serialize request body: {}", e);
-                    return;
-                    }
-                };
-
-                match _xhr_cloned.borrow().open("POST", &api_endpoint) {
-                    Ok(_) => {
-                        if let Err(e) = _xhr_cloned.borrow().set_request_header("Content-Type","application/json"){
-                            log!("Failed to set Context-Type header: {:?}", e);
-                            return;
-                        }
-
-                        match _xhr_cloned.borrow().send_with_opt_str(Some(&payload)) {
-                            Ok(_) => {
-                                log!("Request sent successfully.");
-                            }
-                            Err(e) => log!("Failed to send request: {:?}", e),
-                        }
-                    },
-                    Err(e) => {
-                        log!("Failed to open XHR request: {:?}", e);
-                    }
-                }
-            }) as Box<dyn FnMut(_)>);
-
-            let _document = window().unwrap().document().unwrap();
-            let _text = _document.get_element_by_id("input").unwrap();
-            _text.add_event_listener_with_callback(
-                "change",
-                closure_input.as_ref().unchecked_ref(),
-            ).unwrap();
-            closure_input.forget();
-
-        }
-        */
-
-
         // callback touch from JS
 
         {
             let ref_game_cloned_touch = Rc::clone(&ref_game);
             let c = Closure::wrap(Box::new(move |e:MouseEvent| {
                 // Start Recognition
-                if ref_game_cloned_touch.borrow().get_page_type() == PageType::Input {
-                    ref_recognition_cloned.borrow().start();
+                let _page_type = ref_game_cloned_touch.borrow().get_page_type();
+                match _page_type { 
+                    PageType::Input => {
+                        ref_recognition_cloned.borrow().start();
+                    },
+                    _ => {}
                 }
                 ref_game_cloned_touch.borrow_mut().on_click();
             }) as Box<dyn FnMut(_)>);
@@ -386,21 +308,20 @@ impl GameLoop {
             let ref_game_cloned_keydown = Rc::clone(&ref_game);
 
             let keydown_closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
-                log!("PASS KEYDOWN: {}", e.key_code());
                 if e.key_code() == 13 {
                     let _document = window().unwrap().document().unwrap();
                     let _input = _document.get_element_by_id("input").unwrap();
                     let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
                     let _input_text = sanitize(_text.value());
-                    log!("INPUT_TEXT: {}", _input_text);
 
-                    match ref_game_cloned_keydown.borrow().get_page_type() {
+                    let _page_type = ref_game_cloned_keydown.borrow().get_page_type();
+                    match _page_type {
                         PageType::First => {
                             if _input_text != "" {
                                 let api_endpoint = format!("{}{}", GEMINI_API_ENDPOINT.to_string(), _input_text);
                                 let _= ref_game_cloned_keydown.borrow_mut().set_api_endpoint(api_endpoint);
-                                let _= ref_game_cloned_keydown.borrow_mut().next_page();
                             }
+                            let _= _text.set_value("");
                         },
                         PageType::Input => {
                             let _text = ref_game_cloned_keydown.borrow().create_prompt(_input_text);
@@ -440,11 +361,11 @@ impl GameLoop {
                         },
                         _ => {},
                     }
-
                     //ref_game_keypress_cloned.borrow_mut().on_click();
                 }
             }) as Box<dyn FnMut(_)>);
             let _document = window().unwrap().document().unwrap();
+
             let body = _document.body().unwrap();
             body.add_event_listener_with_callback(
                 "keydown",

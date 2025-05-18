@@ -24,6 +24,7 @@ pub trait StaticGame {
     fn set_api_endpoint(&mut self, _api_endpoint:String);
     fn set_mike_on(&mut self);
     fn set_mike_off(&mut self);
+    fn set_page(&mut self, page:usize);
     fn next_page(&mut self);
     fn on_animation_frame(&mut self);
     fn on_image(&mut self, _image: HtmlImageElement);
@@ -86,7 +87,7 @@ impl StaticGame for Game{
     }
     fn get_page_type(&self) -> PageType{
         if self.page == 0 { return PageType::First; }
-        if self.page == 15 { return PageType::Fin; }
+        if self.page == LAST_PAGE { return PageType::Fin; }
         let _p = self.page % 2;
         match _p {
             0 => { PageType::Output },
@@ -104,6 +105,7 @@ impl StaticGame for Game{
     }
     fn set_api_endpoint(&mut self, api_endpoint:String){
         self.api_endpoint = api_endpoint;
+        self.next_page();
     }
     fn set_mike_on(&mut self){
         self.mike = true;
@@ -111,13 +113,21 @@ impl StaticGame for Game{
     fn set_mike_off(&mut self){
         self.mike = false;
     }
+    fn set_page(&mut self, page:usize){
+        self.page = page;
+    }
     fn next_page(&mut self) {
-        if self.page == LAST_PAGE {
-            self.set_api_endpoint(String::from(""));
-            self.page = 0;
-            return
+        match self.get_page_type() {
+            PageType::First => {
+                self.page +=  1;
+            },
+            PageType::Fin => {
+                self.page = 0;
+            }
+            _ => {
+                self.page += 1;
+            }
         }
-        self.page +=  1;
     }
 
     // Speech recognition result
@@ -187,7 +197,15 @@ impl StaticGame for Game{
             PageType::Input => {
                 let _= self.set_mike_on();
             },
-            PageType::Output | PageType::Fin => {
+            PageType::Fin => {
+                let _document = &self.get_document();
+                let _input = _document.get_element_by_id("input").unwrap();
+                let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
+                let _= _text.set_value("");
+                let _= self.set_message(String::from(""));
+                let _= self.set_page(0);
+            },
+            PageType::Output => {
                 let _document = &self.get_document();
                 let _input = _document.get_element_by_id("input").unwrap();
                 let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
@@ -215,13 +233,13 @@ impl StaticGame for Game{
         let _canvas_height = self.get_canvas().height() as f64;
         let _canvas_top = self.get_canvas().client_top() as f64;
         let _canvas_left = self.get_canvas().client_left() as f64;
+        let _canvas_offsetleft = (self.get_canvas().client_left() + self.get_canvas().offset_left()) as f64;
 
         // Get InputText
         let _document = &self.get_document();
         let _input = _document.get_element_by_id("input").unwrap();
         let _input_element = _input.dyn_into::<HtmlInputElement>().unwrap();
         let _= _input_element.style().set_property("background-color", "#D9FFB3");
-
 
         // Get Textarea
         let _mytextarea = _document.get_element_by_id("mytextarea").unwrap();
@@ -254,11 +272,11 @@ impl StaticGame for Game{
                 let _= _context.close_path();
                 let _= _context.stroke();
                 let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    &self.image, 0.0,0.0,120.0,150.0,-60.0,340.0,240.0,300.0);
+                    &self.image, 0.0,0.0,120.0,150.0,-35.0,340.0,240.0,300.0);
                 let _ =  _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    &self.image, 0.0,150.0,120.0,150.0,140.0,360.0,260.0,320.0);
+                    &self.image, 0.0,150.0,120.0,150.0,165.0,360.0,260.0,320.0);
                 let _ =  _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    &self.image, 120.0,0.0,120.0,150.0, 360.0,340.0,240.0,300.0);
+                    &self.image, 120.0,0.0,120.0,150.0, 385.0,340.0,240.0,300.0);
                 // INPUT TEXT
                 let _= _input_element.set_disabled(false);
                 let _= _input_element.set_placeholder(TEXT_CHAPTER_TEXT_PLACEHOLDER[0]);
@@ -272,12 +290,11 @@ impl StaticGame for Game{
                 let _= _context.set_font("36px MyFont");
                 let _= _context.set_text_align("center");
                 let _= _context.fill_text(TITLE, _canvas_width / 2.0, 90.0);
-                let _= _context.set_font("18px MyFont");
-                let _lines: Vec<&str> = TEXT_OPEN.split('\n').collect();
-                let _= _textarea_message.set_value("");
-                // Illustration
-                let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
-                    &self.image, 120.0, 750.0, 120.0, 150.0, 230.0, 240.0, 120.0, 150.0);
+                let _= _context.set_font("36px MyFont");
+                let _lines: Vec<&str> = TEXT_FIN.split('\n').collect();
+                for i in 0.._lines.len(){
+                    let _= _context.fill_text(_lines[i], _canvas_width / 2.0, (200.0 + (TEXT_SPACE * i) as f32).into());
+                }
                 // TEXTAREA
                 let _= _textarea_message.set_value("");
                 let _= _textarea_cloned.style().set_property("display", "none");
@@ -295,12 +312,14 @@ impl StaticGame for Game{
                 let _= _context.set_fill_style_str(DEFAULT_COLOR);
                 let _= _context.set_text_align("center");
                 let _= _context.fill_text("【 LITTLE RED RIDING HOOD 】", _canvas_width / 2.0, 30.0);
+
                 // CHAPTER
                 let _= _context.set_text_align("left");
                 let _lines: Vec<&str> = TEXT_CHAPTER[_chapter].split('\n').collect();
                 for i in 0.._lines.len() {
                     let _=  _context.fill_text(_lines[i], 10.0, (70.0 + (TEXT_SPACE * i) as f32).into());
                 }
+
                 // Illustration
                 let mut _f  = (0.0, 0.0, 0.0, 0.0);
                 let mut _d = (0.0, 0.0, 0.0, 0.0);
@@ -341,11 +360,13 @@ impl StaticGame for Game{
                 }
                 let _= _context.draw_image_with_html_image_element_and_sw_and_sh_and_dx_and_dy_and_dw_and_dh(
                     &self.image, _f.0, _f.1, _f.2, _f.3, _d.0, _d.1, _d.2, _d.3);
+
                 // CONTEXT
                 let _lines: Vec<&str> = TEXT_CHAPTER[_chapter].split('\n').collect();
                 for i in 0.._lines.len() {
                     let _=  _context.fill_text(_lines[i], 10.0, (70.0 + (TEXT_SPACE * i) as f32).into());
                 }
+
                 // Mike
                  _context.set_global_alpha(0.5);
                 if self.get_mike_status() {
@@ -370,14 +391,13 @@ impl StaticGame for Game{
                         &self.image,
                         125.0, 150.0, 90.0, 50.0, _canvas_left + 10.0, _canvas_top + 40.0, _canvas_width - 20.0, _canvas_height - 100.0);
 
-                    //  Message
-                    //let _mytextarea = _document.get_element_by_id("mytextarea").unwrap();
+                    // Message
                     let _input = _document.get_element_by_id("input").unwrap();
                     let _message = self.get_message();
                     let _document = &self.get_document();
                     let _width = format!("{}px", _canvas_width - 20.0);
                     let _height = format!("{}px", _canvas_height - 40.0);
-                    let _left = format!("{}px", _canvas_left as f32 + 50.0);
+                    let _left = format!("{}px", _canvas_offsetleft as f32 + 10.0);
                     let _top = format!("{}px", _canvas_top as f32 + 50.0);
                     let _= _textarea_cloned.style().set_property("display", "block");
                     let _= _textarea_cloned.style().set_property("left",  &_left);
