@@ -2,7 +2,6 @@ use serde::Serialize;
 
 /* <-- CONSTANT VALUE */
 pub const TITLE: &str = "LITTLE RED RIDING HOOD";
-pub const BASE_WIDTH:f64 = 540.0;
 pub const LAST_PAGE:usize = 15;
 pub const DEFAULT_COLOR: &str = "rgba(0,128, 0)";
 pub const GEMINI_API_ENDPOINT: &str = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=";
@@ -239,4 +238,12 @@ pub fn sanitize(text: String) -> String{
         }
     }
     String::from_iter(chars.iter())
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PageType {
+    Input,
+    Output,
+    First,
+    Fin,
 }

@@ -76,14 +76,13 @@ impl GameLoop {
         let ref_recognition = Rc::new(RefCell::new(recognition));
         let ref_recognition_cloned = Rc::clone(&ref_recognition);
 
-        ref_recognition.borrow_mut().set_lang("ja-JP");         // en-US
-        ref_recognition.borrow_mut().set_interim_results(true); // 途中結果も取得する
-        ref_recognition.borrow_mut().set_continuous(false); // 発話が一度途切れたら認識を終了 (true:continue)
+        ref_recognition.borrow_mut().set_lang("en-US");
+        ref_recognition.borrow_mut().set_interim_results(false); // true: Get intermediate results
+        ref_recognition.borrow_mut().set_continuous(false); // true: Continue if speeach is interrupted
 
         // speach recognition onresult
-        let on_result = Closure::wrap(Box::new(move |event: JsValue| {
-            log!("Speech recognition 'result' event kick.");
 
+        let on_result = Closure::wrap(Box::new(move |event: JsValue| {
             let results = match js_sys::Reflect::get(&event, &JsValue::from_str("results")) {
                 Ok(r) => r,
                 Err(_) => {
@@ -92,17 +91,16 @@ impl GameLoop {
                 }
             };
 
-            // `results` は SpeechRecognitionResultList
+            // results: SpeechRecognitionResultList
             let result_list_length = match js_sys::Reflect::get(&results, &JsValue::from_str("length")).ok().and_then(|l| l.as_f64()) {
                 Some(len) => len as u32,
                 None => {
-                    log!("Failed to get 'length' from SpeechRecognitionResultList or it's not a number");
+                    log!("Failed to get SpeechRecognitionResultList");
                     return;
                 }
             };
 
-            // interimResults が true の場合、複数の結果が含まれることがある
-            // 通常、最後の結果が最新のもの
+            // result_item: Last Item in SpeechRecognitionResult
             if result_list_length > 0 {
                 let last_result_item_index = result_list_length -1;
                 let result_item = match js_sys::Reflect::get_u32(&results, last_result_item_index) {
@@ -112,9 +110,8 @@ impl GameLoop {
                         return;
                         }
                 };
-                // `result_item` は SpeechRecognitionResult
 
-                // 最初の候補 (SpeechRecognitionAlternative) を取得 (通常これが最も確からしい)
+                // alternative: SpeechRecognitionAlternative
                 let alternative = match js_sys::Reflect::get_u32(&result_item, 0) {
                     Ok(alt) => alt,
                     Err(_) => {
@@ -125,27 +122,13 @@ impl GameLoop {
 
                 let transcript = js_sys::Reflect::get(&alternative, &JsValue::from_str("transcript"))
                     .ok().and_then(|v| v.as_string()).unwrap_or_default();
-                let confidence = js_sys::Reflect::get(&alternative, &JsValue::from_str("confidence"))
-                    .ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
                    
-                // isFinal は、この結果が最終的なものか (true)、それとも中間結果か (false) を示す
                 let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
-                    .ok().and_then(|v| v.as_bool()).unwrap_or(false);
+                    .ok().and_then(|v| v.as_bool()).unwrap_or(false); // true: fainal result
 
-                //log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
-
-                // 確定した結果 (isFinal: true) で、かつマイクがオンの場合に入力フィールドに反映する例
                 if is_final {
-                    let game_borrow = game_ref_for_speech.borrow(); // game_ref_for_speech を使用
-                    if game_borrow.get_mike_status() { // マイクがオンの時だけ処理
-                        let document = window().unwrap().document().unwrap();
-                        if let Some(input_el_val) = document.get_element_by_id("input") {
-                            if let Ok(input_el) = input_el_val.dyn_into::<HtmlInputElement>() {
-                                input_el.set_value(&transcript);
-                                //game_ref_for_speech.borrow_mut().on_input_changed(&transcript);
-                            }
-                        }
-                    }
+                    // change input_text context
+                    game_ref_for_speech.borrow_mut().on_input_changed(&transcript);
                 }
             }
         }) as Box<dyn FnMut(JsValue)>);
@@ -154,8 +137,8 @@ impl GameLoop {
         on_result.forget();
 
         // speech recognition onerror
+
         let on_error = Closure::wrap(Box::new(move |error_event: JsValue| {
-            // `error_event` は JavaScript の SpeechRecognitionErrorEvent オブジェクト
             let error_type = js_sys::Reflect::get(&error_event, &JsValue::from_str("error"))
                 .unwrap_or_else(|_| JsValue::from_str("unknown error"))
                 .as_string()
@@ -178,7 +161,6 @@ impl GameLoop {
 
         let ref_game_mike_cloned = Rc::clone(&ref_game);
         let on_end = Closure::wrap(Box::new(move |_: JsValue| {
-            log!("Speech recognition service has stopped.");
             ref_game_mike_cloned.borrow_mut().set_mike_off();
             ref_recognition.borrow_mut().stop();
         }) as Box<dyn FnMut(JsValue)>);
@@ -283,7 +265,6 @@ impl GameLoop {
 
         {
             let closure_input = Closure::wrap(Box::new(move |e: InputEvent| {
-                log!("callback Input Event");
                 let input = e
                     .current_target()
                     .unwrap()
@@ -348,19 +329,29 @@ impl GameLoop {
                 closure_input.as_ref().unchecked_ref(),
             ).unwrap();
             closure_input.forget();
+
         }
+
+
+
+
+
+
+
+
+
+
 
         // callback touch from JS
 
         {
             let ref_game_touch_cloned = Rc::clone(&ref_game);
-
             let c = Closure::wrap(Box::new(move |e:MouseEvent| {
-
                 // Start Recognition
-
-                ref_recognition_cloned.borrow().start();
-                ref_game_touch_cloned.borrow_mut().set_mike_changed();
+                if ref_game_touch_cloned.borrow().get_page_type() == PageType::Input {
+                    ref_recognition_cloned.borrow().start();
+                }
+                ref_game_touch_cloned.borrow_mut().on_click(e);
             }) as Box<dyn FnMut(_)>);
 
             let _document = window().unwrap().document().unwrap();

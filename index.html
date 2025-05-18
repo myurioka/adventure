@@ -3,16 +3,13 @@
 <head>
 <meta charset="utf-8" content="user-scalable=no" />
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Adeventure</title>
 <link rel="stylesheet" href="./static/main.css" type="text/css" media="screen">
 <style>
 @font-face {
   font-family: 'MyFont';
   src: url('./assets/AbrilFatface-Regular.ttf') format('TrueType'),
-}
-#canvas {
-    width: 100%;
-    height: 100%;
 }
 </style>
 <link rel="apple-touch-icon" href="./static/icon.png">
@@ -27,14 +24,14 @@
 </head>
 <body onload="document.getElementById('canvas').focus()">
 <center>
-    <div style="letter-spacing: 0em">
-        <canvas id="canvas" tabindex="0" width="540" height="640">
+    <div style="letter-spacing: 0em; margin: 0 auto;">
+        <canvas id="canvas" tabindex="0" width="600" height="640" max-width="800">
             Your browser does not support the Canvas.
         </canvas>
-        <textarea id="mytextarea" style="position:absolute; visibility:hidden;max-width:800px;"></textarea>
+        <textarea id="mytextarea" style="position:absolute; visibility:hidden; max-width:600px;" readonly></textarea>
     </div>
-    <div id="sentence">
-        <input type="text" id="input" value="" name="input sentence" placeholder="Enter Gemini Api Key"  minlength="4" maxlength="60" size="60" />
+    <div id="sentence" style="width:600px">
+        <input type="text" id="input" value="" name="input sentence" placeholder="Enter Gemini Api Key"  minlength="4" widmaxlength="60" size="60"/>
     </div>
 </center>
 </body>
