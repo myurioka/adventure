@@ -75,11 +75,11 @@ impl GameLoop {
 
         let ref_game = Rc::new(RefCell::new(game));
 
-        let game_ref_for_keydown = Rc::clone(&ref_game);
+        //let ref_game_cloned_keydown = Rc::clone(&ref_game);
 
         // callback WebkitSpeechRecognition from JS
 
-        let game_ref_for_speech = Rc::clone(&ref_game);
+        let ref_game_cloned_speech = Rc::clone(&ref_game);
         let recognition = WebkitSpeechRecognition::new();
         let ref_recognition = Rc::new(RefCell::new(recognition));
         let ref_recognition_cloned = Rc::clone(&ref_recognition);
@@ -141,7 +141,7 @@ impl GameLoop {
 
                 if is_final {
                     // change input_text context
-                    game_ref_for_speech.borrow_mut().on_input_changed(&transcript);
+                    ref_game_cloned_speech.borrow_mut().on_input_changed(&transcript);
                 }
             }
         }) as Box<dyn FnMut(JsValue)>);
@@ -172,9 +172,9 @@ impl GameLoop {
 
         // speech recognition onend
 
-        let ref_game_mike_cloned = Rc::clone(&ref_game);
+        let ref_game_cloned_mike = Rc::clone(&ref_game);
         let on_end = Closure::wrap(Box::new(move |_: JsValue| {
-            ref_game_mike_cloned.borrow_mut().set_mike_off();
+            ref_game_cloned_mike.borrow_mut().set_mike_off();
             ref_recognition.borrow_mut().stop();
         }) as Box<dyn FnMut(JsValue)>);
         ref_recognition_cloned.borrow_mut().add_event_listener("end", &on_end);
@@ -207,17 +207,17 @@ impl GameLoop {
 
         // callback http request from JS
 
-        let ref_game_cloned = Rc::clone(&ref_game);
+        //let ref_game_cloned = Rc::clone(&ref_game);
         let _xhr = XmlHttpRequest::new().unwrap();
         let _xhr_cloned = Rc::new(RefCell::new(_xhr.clone()));
 
         {
-            let ref_game_http_request_cloned = Rc::clone(&ref_game);
+            let ref_game_cloned_http_request = Rc::clone(&ref_game);
 
             let closure_http_request = Closure::wrap(Box::new( move |e: Event| {
                 let xhr_target = e.target().unwrap();
                 let xhr = xhr_target.dyn_ref::<XmlHttpRequest>().unwrap();
-                if xhr.ready_state() == 4{
+                if xhr.ready_state() == 4 {
                     match xhr.status(){
                         Ok(200) => {
                             match xhr.response_text() {
@@ -226,28 +226,28 @@ impl GameLoop {
                                         Ok(parsed_response) => {
                                             if let Some(candidate) = parsed_response.candidates.first() {
                                                 if let Some(part) = candidate.content.parts.first(){
-                                                    ref_game_http_request_cloned.borrow_mut().on_http_request(part.text.clone());
+                                                    ref_game_cloned_http_request.borrow_mut().on_http_request(part.text.clone());
                                                 } else {
-                                                    ref_game_http_request_cloned.borrow_mut().on_http_request("Error: No candidates found".to_string());
+                                                    ref_game_cloned_http_request.borrow_mut().on_http_request("Error: No candidates found".to_string());
                                                 }
                                             } else {
                                                 log!("Error: No candidates found in resonse");
-                                                ref_game_http_request_cloned.borrow_mut().on_http_request("Error: No candidates found".to_string());
+                                                ref_game_cloned_http_request.borrow_mut().on_http_request("Error: No candidates found".to_string());
                                             }
                                         }
                                         Err(e) => {
                                             log!("JSON Parse Error: {:?}", e);
-                                            ref_game_http_request_cloned.borrow_mut().on_http_request(format!("Error parsing response: {}", e));
+                                            ref_game_cloned_http_request.borrow_mut().on_http_request(format!("Error parsing response: {}", e));
                                         }
                                     }
                                 }
                                 Ok(None) => {
                                     log!("Error reading response text: {:?}", e);
-                                    ref_game_http_request_cloned.borrow_mut().on_http_request("Error: Empty response".to_string());
+                                    ref_game_cloned_http_request.borrow_mut().on_http_request("Error: Empty response".to_string());
                                 }
                                 Err(e) => {
                                     log!("Error getting HTTP status: {:?}", e);
-                                    ref_game_http_request_cloned.borrow_mut().on_http_request(format!("Network Error: {:?}", e));
+                                    ref_game_cloned_http_request.borrow_mut().on_http_request(format!("Network Error: {:?}", e));
                                 }
                             }
                         }
@@ -255,11 +255,11 @@ impl GameLoop {
                             log!("HTTP Error: Status {}", status_code);
                             let error_text = xhr.response_text().unwrap_or(Some("Failed to get error details".to_string())).unwrap_or_default();
                             log!("Error Response Body: {}", error_text);
-                            ref_game_http_request_cloned.borrow_mut().on_http_request(format!("HTTP Error: {}", status_code));
+                            ref_game_cloned_http_request.borrow_mut().on_http_request(format!("HTTP Error: {}", status_code));
                         }
                         Err(e) => {
                             log!("Error Response HTTP status: {:?}", e);
-                            ref_game_http_request_cloned.borrow_mut().on_http_request(format!("Network Error: {:?}", e));
+                            ref_game_cloned_http_request.borrow_mut().on_http_request(format!("Network Error: {:?}", e));
                         }
                     }
                 }
@@ -350,13 +350,13 @@ impl GameLoop {
         // callback touch from JS
 
         {
-            let ref_game_touch_cloned = Rc::clone(&ref_game);
+            let ref_game_cloned_touch = Rc::clone(&ref_game);
             let c = Closure::wrap(Box::new(move |e:MouseEvent| {
                 // Start Recognition
-                if ref_game_touch_cloned.borrow().get_page_type() == PageType::Input {
+                if ref_game_cloned_touch.borrow().get_page_type() == PageType::Input {
                     ref_recognition_cloned.borrow().start();
                 }
-                ref_game_touch_cloned.borrow_mut().on_click();
+                ref_game_cloned_touch.borrow_mut().on_click();
             }) as Box<dyn FnMut(_)>);
 
             let _document = window().unwrap().document().unwrap();
@@ -380,10 +380,83 @@ impl GameLoop {
             d.forget();
         }
 
+        // callback Keydown Event from JS
+
+        {
+            let ref_game_cloned_keydown = Rc::clone(&ref_game);
+
+            let keydown_closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
+                log!("PASS KEYDOWN: {}", e.key_code());
+                if e.key_code() == 13 {
+                    let _document = window().unwrap().document().unwrap();
+                    let _input = _document.get_element_by_id("input").unwrap();
+                    let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
+                    let _input_text = sanitize(_text.value());
+                    log!("INPUT_TEXT: {}", _input_text);
+
+                    match ref_game_cloned_keydown.borrow().get_page_type() {
+                        PageType::First => {
+                            if _input_text != "" {
+                                let api_endpoint = format!("{}{}", GEMINI_API_ENDPOINT.to_string(), _input_text);
+                                let _= ref_game_cloned_keydown.borrow_mut().set_api_endpoint(api_endpoint);
+                                let _= ref_game_cloned_keydown.borrow_mut().next_page();
+                            }
+                        },
+                        PageType::Input => {
+                            let _text = ref_game_cloned_keydown.borrow().create_prompt(_input_text);
+                            let _api_endpoint = ref_game_cloned_keydown.borrow().get_api_endpoint();
+                            let api_endpoint = format!("{}",_api_endpoint);
+                            let request_body = GeminiRequestBody {
+                                contents: vec![GeminiRequestContent {
+                                parts: vec![GeminiRequestPart {text: _text}],
+                                }],
+                            };
+
+                            let _= ref_game_cloned_keydown.borrow_mut().next_page();
+                            let payload = match serde_json::to_string(&request_body){
+                                Ok(json) => json,
+                                Err(e) => {
+                                log!("Failed to serialize request body: {}", e);
+                                return;
+                                }
+                            };
+                            match _xhr_cloned.borrow().open("POST", &api_endpoint) {
+                                Ok(_) => {
+                                    if let Err(e) = _xhr_cloned.borrow().set_request_header("Content-Type","application/json"){
+                                        log!("Failed to set Context-Type header: {:?}", e);
+                                        return;
+                                    }
+                                    match _xhr_cloned.borrow().send_with_opt_str(Some(&payload)) {
+                                        Ok(_) => {
+                                            log!("Request sent successfully.");
+                                        }
+                                        Err(e) => log!("Failed to send request: {:?}", e),
+                                    }
+                                },
+                                Err(e) => {
+                                    log!("Failed to open XHR request: {:?}", e);
+                                }
+                            }
+                        },
+                        _ => {},
+                    }
+
+                    //ref_game_keypress_cloned.borrow_mut().on_click();
+                }
+            }) as Box<dyn FnMut(_)>);
+            let _document = window().unwrap().document().unwrap();
+            let body = _document.body().unwrap();
+            body.add_event_listener_with_callback(
+                "keydown",
+                keydown_closure.as_ref().unchecked_ref(),
+            ).unwrap();
+            keydown_closure.forget();
+        }
+
         // callback image load from JS
 
         {
-            let ref_game_image_cloned = Rc::clone(&ref_game);
+            let ref_game_cloned_image = Rc::clone(&ref_game);
 
             wasm_bindgen_futures::spawn_local(async move {
                 let _image = HtmlImageElement::new().unwrap();
@@ -396,27 +469,9 @@ impl GameLoop {
                 _image.set_src("screen.svg");
                 let _result = wasm_bindgen_futures::JsFuture::from(_image.decode()).await;
 
-                ref_game_image_cloned.borrow_mut().on_image(_image);
+                ref_game_cloned_image.borrow_mut().on_image(_image);
                 ref_game.borrow().draw();
             });
         }
-        // callback Keydown Event from JS
-        {
-            //game_ref_for_keydown
-            let keydown_closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
-                 if game_ref_for_keydown.borrow().get_page_type() == PageType::Input {
-                    log!("PASS KEYDOWN");
-                    //ref_game_keypress_cloned.borrow_mut().on_click();
-                 }
-            }) as Box<dyn FnMut(_)>);
-            let _document = window().unwrap().document().unwrap();
-            let body = _document.body().unwrap();
-            body.add_event_listener_with_callback(
-                "keydown",
-                keydown_closure.as_ref().unchecked_ref(),
-            ).unwrap();
-            keydown_closure.forget();
-        }
-
     }
 }
