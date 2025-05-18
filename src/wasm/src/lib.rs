@@ -1,11 +1,17 @@
 mod game;
 mod common;
 use crate::common::*;
+use anyhow::{anyhow, Result};
+
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
-use web_sys::{HtmlImageElement, window, InputEvent, XmlHttpRequest, Event, EventTarget, HtmlInputElement, MouseEvent};
-use std::{cell::RefCell, rc::Rc};
+use web_sys::{HtmlImageElement, window, InputEvent, XmlHttpRequest, Event, EventTarget, HtmlInputElement, MouseEvent, KeyboardEvent};
+use std::{cell::RefCell, rc::Rc, collections::HashMap};
+use futures::channel::{
+    mpsc::{unbounded, UnboundedReceiver},
+    //oneshot::channel,
+};
 use game::Game;
 use game::StaticGame;
 
@@ -69,6 +75,8 @@ impl GameLoop {
 
         let ref_game = Rc::new(RefCell::new(game));
 
+        let game_ref_for_keydown = Rc::clone(&ref_game);
+
         // callback WebkitSpeechRecognition from JS
 
         let game_ref_for_speech = Rc::clone(&ref_game);
@@ -76,7 +84,7 @@ impl GameLoop {
         let ref_recognition = Rc::new(RefCell::new(recognition));
         let ref_recognition_cloned = Rc::clone(&ref_recognition);
 
-        ref_recognition.borrow_mut().set_lang("en-US");
+        ref_recognition.borrow_mut().set_lang("js-JP"); // en-US, ja-JP
         ref_recognition.borrow_mut().set_interim_results(false); // true: Get intermediate results
         ref_recognition.borrow_mut().set_continuous(false); // true: Continue if speeach is interrupted
 
@@ -122,9 +130,14 @@ impl GameLoop {
 
                 let transcript = js_sys::Reflect::get(&alternative, &JsValue::from_str("transcript"))
                     .ok().and_then(|v| v.as_string()).unwrap_or_default();
+                log!("Lib: transcript::{}", transcript);
+                let confidence = js_sys::Reflect::get(&alternative, &JsValue::from_str("confidence"))
+                    .ok().and_then(|v| v.as_f64()).unwrap_or(0.0);
                    
                 let is_final = js_sys::Reflect::get(&result_item, &JsValue::from_str("isFinal"))
                     .ok().and_then(|v| v.as_bool()).unwrap_or(false); // true: fainal result
+
+                log!("Transcript (isFinal: {}): \"{}\", Confidence: {:.2}", is_final, transcript, confidence);
 
                 if is_final {
                     // change input_text context
@@ -262,7 +275,7 @@ impl GameLoop {
         }
 
         // callback Input Event from JS
-
+        /* 
         {
             let closure_input = Closure::wrap(Box::new(move |e: InputEvent| {
                 let input = e
@@ -331,15 +344,7 @@ impl GameLoop {
             closure_input.forget();
 
         }
-
-
-
-
-
-
-
-
-
+        */
 
 
         // callback touch from JS
@@ -351,7 +356,7 @@ impl GameLoop {
                 if ref_game_touch_cloned.borrow().get_page_type() == PageType::Input {
                     ref_recognition_cloned.borrow().start();
                 }
-                ref_game_touch_cloned.borrow_mut().on_click(e);
+                ref_game_touch_cloned.borrow_mut().on_click();
             }) as Box<dyn FnMut(_)>);
 
             let _document = window().unwrap().document().unwrap();
@@ -364,7 +369,7 @@ impl GameLoop {
 
             let ref_game_touch_textarea_cloned = Rc::clone(&ref_game);
             let d = Closure::wrap(Box::new(move |e:MouseEvent| {
-                ref_game_touch_textarea_cloned.borrow_mut().on_click(e);
+                ref_game_touch_textarea_cloned.borrow_mut().on_click();
             }) as Box<dyn FnMut(_)>);
             let _document = window().unwrap().document().unwrap();
             let _canvas = _document.get_element_by_id("mytextarea").unwrap();
@@ -374,7 +379,6 @@ impl GameLoop {
             ).unwrap();
             d.forget();
         }
-
 
         // callback image load from JS
 
@@ -396,5 +400,23 @@ impl GameLoop {
                 ref_game.borrow().draw();
             });
         }
+        // callback Keydown Event from JS
+        {
+            //game_ref_for_keydown
+            let keydown_closure = Closure::wrap(Box::new(move |e: KeyboardEvent| {
+                 if game_ref_for_keydown.borrow().get_page_type() == PageType::Input {
+                    log!("PASS KEYDOWN");
+                    //ref_game_keypress_cloned.borrow_mut().on_click();
+                 }
+            }) as Box<dyn FnMut(_)>);
+            let _document = window().unwrap().document().unwrap();
+            let body = _document.body().unwrap();
+            body.add_event_listener_with_callback(
+                "keydown",
+                keydown_closure.as_ref().unchecked_ref(),
+            ).unwrap();
+            keydown_closure.forget();
+        }
+
     }
 }

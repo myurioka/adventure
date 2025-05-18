@@ -28,7 +28,7 @@ pub trait StaticGame {
     fn on_animation_frame(&mut self);
     fn on_image(&mut self, _image: HtmlImageElement);
     fn on_http_request(&mut self, response: String);
-    fn on_click(&mut self, e:MouseEvent); 
+    fn on_click(&mut self); 
     fn on_input_changed(&mut self, transcript: &String);
     fn get_document(&self) -> Document;
     fn get_canvas(&self) -> HtmlCanvasElement;
@@ -127,6 +127,7 @@ impl StaticGame for Game{
         let _input = _document.get_element_by_id("input").unwrap();
         let _text = _input.dyn_into::<HtmlInputElement>().unwrap();
         let _= _text.set_value(&transcript);
+        let _= _text.focus();
         let _= self.set_mike_off();
     }
 
@@ -173,7 +174,7 @@ impl StaticGame for Game{
 
     // callback click: controll page number
 
-    fn on_click(&mut self, e:MouseEvent) {
+    fn on_click(&mut self) {
 
         // Mike Display ON/OFF
 

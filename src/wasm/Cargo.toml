@@ -36,5 +36,6 @@ features = ["console",
             "EventTarget",
             "Event",
             "MouseEvent",
-            "HtmlTextAreaElement"
+            "HtmlTextAreaElement",
+            "KeyboardEvent"
             ]
